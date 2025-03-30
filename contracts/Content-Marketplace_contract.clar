@@ -83,3 +83,53 @@
     false
   )
 )
+
+(define-read-only (has-purchased (buyer principal) (content-id uint))
+  (is-some (get-purchase buyer content-id))
+)
+
+(define-read-only (calculate-average-rating (content-id uint))
+  ;; This is a simplified implementation - in practice you'd iterate through all reviews
+  ;; You might want to store cumulative rating and count separately for efficiency
+  u0
+)
+
+;; Public functions
+(define-public (register-content 
+  (title (string-utf8 100))
+  (content-uri (string-utf8 256))
+  (price uint)
+  (royalty-percentage uint)
+  (is-subscription bool)
+  (subscription-duration uint)
+)
+  (let 
+    (
+      (content-id (var-get next-content-id))
+    )
+    
+    ;; Validate royalty percentage is between 0-100
+    (asserts! (<= royalty-percentage u100) (err ERR-INVALID-ROYALTY-PERCENTAGE))
+    
+    ;; Register the content
+    (map-set contents
+      { content-id: content-id }
+      {
+        creator: tx-sender,
+        title: title,
+        content-uri: content-uri,
+        price: price,
+        royalty-percentage: royalty-percentage,
+        is-subscription: is-subscription,
+        subscription-duration: subscription-duration,
+        is-active: true,
+        created-at: block-height
+      }
+    )
+    
+    ;; Increment the content ID counter
+    (var-set next-content-id (+ content-id u1))
+    
+    (ok content-id)
+  )
+)

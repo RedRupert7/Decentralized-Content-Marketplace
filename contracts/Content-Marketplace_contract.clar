@@ -133,3 +133,70 @@
     (ok content-id)
   )
 )
+
+(define-public (add-collaborator (content-id uint) (collaborator principal) (royalty-percentage uint))
+  (let
+    (
+      (content (unwrap! (get-content content-id) (err ERR-CONTENT-NOT-FOUND)))
+      (total-royalty (default-to u0 (get-collaborators-total-royalty content-id)))
+    )
+    
+    ;; Check that the caller is the content creator
+    (asserts! (is-eq tx-sender (get creator content)) (err ERR-NOT-AUTHORIZED))
+    
+    ;; Validate royalty percentage
+    (asserts! (<= royalty-percentage u100) (err ERR-INVALID-ROYALTY-PERCENTAGE))
+    
+    ;; Make sure total royalty doesn't exceed 100%
+    (asserts! (<= (+ total-royalty royalty-percentage) u100) (err ERR-TOTAL-ROYALTY-EXCEEDS-100))
+    
+    ;; Add collaborator
+    (map-set content-collaborators
+      { content-id: content-id, collaborator: collaborator }
+      { royalty-percentage: royalty-percentage }
+    )
+    
+    (ok true)
+  )
+)
+
+(define-read-only (get-collaborators-total-royalty (content-id uint))
+  ;; In practice, you'd need to enumerate all collaborators and sum their percentages
+  ;; This is a simplified placeholder
+  u0
+)
+
+(define-public (purchase-content (content-id uint))
+  (let
+    (
+      (content (unwrap! (get-content content-id) (err ERR-CONTENT-NOT-FOUND)))
+      (buyer tx-sender)
+      (price (get price content))
+      (creator (get creator content))
+      (purchase-id (var-get next-purchase-id))
+      (expires-at (if (get is-subscription content)
+                     (+ block-height (get subscription-duration content))
+                     u0))
+    )
+    
+    ;; Check that content is active
+    (asserts! (get is-active content) (err ERR-CONTENT-NOT-ACTIVE))
+    
+    ;; Check if already purchased (for non-subscription)
+    (when (and (not (get is-subscription content))
+             (has-purchased buyer content-id))
+      (err ERR-ALREADY-PURCHASED))
+    
+    ;; Process the payment
+    (try! (stx-transfer? price buyer creator))
+    
+    ;; Record the purchase
+    (map-set purchases
+      { buyer: buyer, content-id: content-id }
+      {
+        purchase-id: purchase-id,
+        purchase-price: price,
+        expires-at: expires-at,
+        purchased-at: block-height
+      }
+    )

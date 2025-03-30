@@ -56,19 +56,3 @@ The Decentralized Content Marketplace is a smart contract-based platform that en
 3. Interact with the contract using Clarity functions.
 
 ---
-
-**Pull Request Description**
-
-### **Title:** Implement Decentralized Content Marketplace Smart Contract
-
-### **Description:**
-This PR introduces a Clarity smart contract for a decentralized content marketplace. The contract enables content creators to tokenize and sell digital content while automating royalty distributions among collaborators. It supports one-time purchases, subscriptions, and user reviews.
-
-#### **Key Features:**
-- Content registration and management
-- Purchase and subscription tracking
-- Royalty distribution among multiple collaborators
-- Review and rating system
-- Content status and price management
-
-This implementation ensures that all transactions are transparent and that royalties are fairly distributed among contributors. Further optimizations can be made for gas efficiency and additional f

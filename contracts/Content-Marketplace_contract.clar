@@ -200,3 +200,95 @@
         purchased-at: block-height
       }
     )
+     ;; Increment purchase ID
+    (var-set next-purchase-id (+ purchase-id u1))
+    
+    (ok true)
+  )
+)
+
+(define-public (distribute-royalties (content-id uint) (payment-amount uint))
+  (let
+    (
+      (content (unwrap! (get-content content-id) (err ERR-CONTENT-NOT-FOUND)))
+      (creator (get creator content))
+    )
+    
+    ;; In a full implementation, this would iterate through all collaborators
+    ;; and transfer their royalty percentages appropriately
+    ;; This is a simplified version showing the concept
+    
+    ;; Transfer the remaining amount to the content creator
+    (try! (stx-transfer? payment-amount tx-sender creator))
+    
+    (ok true)
+  )
+)
+
+(define-public (leave-review (content-id uint) (rating uint) (review-text (string-utf8 500)))
+  (let
+    (
+      (content (unwrap! (get-content content-id) (err ERR-CONTENT-NOT-FOUND)))
+      (reviewer tx-sender)
+    )
+    
+    ;; Check that reviewer has purchased the content
+    (asserts! (has-purchased reviewer content-id) (err ERR-NOT-PURCHASED))
+    
+    ;; Check that rating is between 1 and 5
+    (asserts! (and (>= rating u1) (<= rating u5)) (err ERR-INVALID-RATING))
+    
+    ;; Check if already reviewed
+    (asserts! (is-none (get-review reviewer content-id)) (err ERR-ALREADY-REVIEWED))
+    
+    ;; Add the review
+    (map-set reviews
+      { reviewer: reviewer, content-id: content-id }
+      {
+        rating: rating,
+        review-text: review-text,
+        review-date: block-height
+      }
+    )
+    
+    (ok true)
+  )
+)
+
+(define-public (update-content-status (content-id uint) (is-active bool))
+  (let
+    (
+      (content (unwrap! (get-content content-id) (err ERR-CONTENT-NOT-FOUND)))
+    )
+    
+    ;; Check that caller is the content creator
+    (asserts! (is-eq tx-sender (get creator content)) (err ERR-NOT-AUTHORIZED))
+    
+    ;; Update the content status
+    (map-set contents
+      { content-id: content-id }
+      (merge content { is-active: is-active })
+    )
+    
+    (ok true)
+  )
+)
+
+(define-public (update-content-price (content-id uint) (new-price uint))
+  (let
+    (
+      (content (unwrap! (get-content content-id) (err ERR-CONTENT-NOT-FOUND)))
+    )
+    
+    ;; Check that caller is the content creator
+    (asserts! (is-eq tx-sender (get creator content)) (err ERR-NOT-AUTHORIZED))
+    
+    ;; Update the price
+    (map-set contents
+      { content-id: content-id }
+      (merge content { price: new-price })
+    )
+    
+    (ok true)
+  )
+)

@@ -33,3 +33,53 @@
     purchased-at: uint
   }
 )
+
+;; Map for reviews and ratings
+(define-map reviews
+  { reviewer: principal, content-id: uint }
+  {
+    rating: uint,            ;; 1-5 star rating
+    review-text: (string-utf8 500),
+    review-date: uint
+  }
+)
+
+;; Counter for content IDs
+(define-data-var next-content-id uint u1)
+(define-data-var next-purchase-id uint u1)
+
+;; Error codes
+(define-constant ERR-NOT-AUTHORIZED u1)
+(define-constant ERR-CONTENT-NOT-FOUND u2)
+(define-constant ERR-PRICE-NOT-MET u3)
+(define-constant ERR-ALREADY-PURCHASED u4)
+(define-constant ERR-INVALID-RATING u5)
+(define-constant ERR-CONTENT-NOT-ACTIVE u6)
+(define-constant ERR-ALREADY-REVIEWED u7)
+(define-constant ERR-NOT-PURCHASED u8)
+(define-constant ERR-INVALID-ROYALTY-PERCENTAGE u9)
+(define-constant ERR-TOTAL-ROYALTY-EXCEEDS-100 u10)
+
+;; Read-only functions
+(define-read-only (get-content (content-id uint))
+  (map-get? contents { content-id: content-id })
+)
+
+(define-read-only (get-content-collaborator (content-id uint) (collaborator principal))
+  (map-get? content-collaborators { content-id: content-id, collaborator: collaborator })
+)
+
+(define-read-only (get-purchase (buyer principal) (content-id uint))
+  (map-get? purchases { buyer: buyer, content-id: content-id })
+)
+
+(define-read-only (get-review (reviewer principal) (content-id uint))
+  (map-get? reviews { reviewer: reviewer, content-id: content-id })
+)
+
+(define-read-only (has-active-subscription (buyer principal) (content-id uint))
+  (match (get-purchase buyer content-id)
+    purchase (> (get expires-at purchase) block-height)
+    false
+  )
+)
